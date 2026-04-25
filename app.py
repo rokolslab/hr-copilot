@@ -14,8 +14,8 @@ from storage import append_history_record, build_history_record, load_history
 
 logger = get_logger(__name__)
 WORKFLOW_TEXT = (
-    "vacancy -> scorecard -> resume parsing -> evidence extraction -> fit matrix -> "
-    "heuristic_score + llm_score -> final_score -> decision -> interview questions -> history"
+    "вакансия -> scorecard -> парсинг резюме -> извлечение evidence -> fit matrix -> "
+    "heuristic_score + llm_score -> final_score -> decision -> вопросы на интервью -> история"
 )
 
 
@@ -40,28 +40,28 @@ def render_analysis_result(result: Any) -> None:
         },
     )
 
-    st.subheader("Analysis Result")
+    st.subheader("Результат анализа")
 
     score_column, heuristic_column, llm_column = st.columns(3)
-    score_column.metric("Final Score", f"{result.final_score:.1f}")
-    heuristic_column.metric("Heuristic Score", f"{result.heuristic_score:.1f}")
-    llm_column.metric("LLM Score", f"{result.llm_score:.1f}")
+    score_column.metric("Итоговый балл", f"{result.final_score:.1f}")
+    heuristic_column.metric("Эвристический балл", f"{result.heuristic_score:.1f}")
+    llm_column.metric("LLM балл", f"{result.llm_score:.1f}")
 
     decision_column, confidence_column = st.columns(2)
-    decision_column.metric("Decision", result.decision.value)
-    confidence_column.metric("Confidence", result.confidence.value)
+    decision_column.metric("Решение", result.decision.value)
+    confidence_column.metric("Уверенность", result.confidence.value)
 
-    st.markdown("### Required Output")
-    st.write("**Strengths**")
-    st.write(result.strengths or ["No strengths extracted."])
-    st.write("**Weaknesses**")
-    st.write(result.weaknesses or ["No weaknesses extracted."])
-    st.write("**Missing Skills**")
-    st.write(result.missing_skills or ["No missing skills extracted."])
-    st.write("**Summary**")
+    st.markdown("### Обязательные поля")
+    st.write("**Сильные стороны**")
+    st.write(result.strengths or ["Сильные стороны не извлечены."])
+    st.write("**Слабые стороны**")
+    st.write(result.weaknesses or ["Слабые стороны не извлечены."])
+    st.write("**Недостающие навыки**")
+    st.write(result.missing_skills or ["Недостающие навыки не извлечены."])
+    st.write("**Итоговое резюме**")
     st.write(result.summary)
 
-    st.markdown("### Vacancy Scorecard")
+    st.markdown("### Scorecard вакансии")
     st.json(result.vacancy_scorecard.model_dump(mode="json"))
 
     st.markdown("### Fit Matrix")
@@ -69,16 +69,16 @@ def render_analysis_result(result: Any) -> None:
     if fit_matrix_rows:
         st.table(fit_matrix_rows)
     else:
-        st.info("Fit matrix is empty. The LLM response likely fell back to defaults.")
+        st.info("Fit matrix пуста. Вероятно, LLM-ответ откатился к fallback-значениям.")
 
-    st.markdown("### Risks")
-    st.write(result.risks or ["No explicit risks extracted."])
+    st.markdown("### Риски")
+    st.write(result.risks or ["Явные риски не извлечены."])
 
-    st.markdown("### Interview Questions")
-    st.write(result.interview_questions or ["No interview questions generated."])
+    st.markdown("### Вопросы на интервью")
+    st.write(result.interview_questions or ["Вопросы на интервью не сгенерированы."])
 
     st.download_button(
-        label="Download JSON report",
+        label="Скачать JSON-отчёт",
         data=build_download_payload(result),
         file_name=f"{result.candidate_name or 'candidate'}-analysis.json",
         mime="application/json",
@@ -87,10 +87,10 @@ def render_analysis_result(result: Any) -> None:
 
 def render_history_section(history_records: list[Any]) -> None:
     logger.debug("Rendering history section", extra={"history_count": len(history_records)})
-    st.subheader("History")
+    st.subheader("История")
 
     if not history_records:
-        st.info("No saved analyses yet.")
+        st.info("Сохранённых анализов пока нет.")
         return
 
     history_rows = [
@@ -109,13 +109,13 @@ def render_history_section(history_records: list[Any]) -> None:
     if len(history_records) < 2:
         return
 
-    st.markdown("### Compare Candidates")
+    st.markdown("### Сравнение кандидатов")
     candidate_options = {
         f"{record.candidate_name} ({record.created_at.date()})": record
         for record in history_records
     }
-    left_label = st.selectbox("Candidate A", list(candidate_options.keys()), key="compare_left")
-    right_label = st.selectbox("Candidate B", list(candidate_options.keys()), key="compare_right")
+    left_label = st.selectbox("Кандидат A", list(candidate_options.keys()), key="compare_left")
+    right_label = st.selectbox("Кандидат B", list(candidate_options.keys()), key="compare_right")
 
     left_record = candidate_options[left_label]
     right_record = candidate_options[right_label]
@@ -160,14 +160,14 @@ def run_analysis(
 
     if not candidate_name.strip() or not vacancy_text.strip():
         logger.warning("Analysis blocked due to missing candidate name or vacancy text")
-        st.error("Provide both candidate name and vacancy text.")
+        st.error("Укажи имя кандидата и текст вакансии.")
         return None
 
     uploaded_bytes = uploaded_resume.getvalue() if uploaded_resume is not None else None
     resume_text = prepare_resume_text(uploaded_bytes, manual_resume_text, settings.max_resume_chars)
     if not resume_text:
         logger.warning("Analysis blocked because resume text is empty after preparation")
-        st.error("Provide a PDF resume or paste resume text.")
+        st.error("Загрузи PDF-резюме или вставь текст резюме вручную.")
         return None
 
     try:
@@ -219,24 +219,24 @@ def main() -> None:
     settings = get_settings()
     st.set_page_config(page_title="AI HR Copilot", layout="wide")
     st.title("AI HR Copilot")
-    st.caption("Evidence-based candidate prescreening MVP")
+    st.caption("MVP для evidence-based прескоринга кандидатов")
 
-    st.sidebar.header("Settings")
-    st.sidebar.write(f"Model: `{settings.openai_model}`")
+    st.sidebar.header("Настройки")
+    st.sidebar.write(f"Модель: `{settings.openai_model}`")
     hard_skills_weight = st.sidebar.slider(
-        "Hard skills weight",
+        "Вес hard skills",
         min_value=0,
         max_value=100,
         value=int(DEFAULT_WEIGHT_VALUES["hard_skills"]),
     )
     experience_weight = st.sidebar.slider(
-        "Experience weight",
+        "Вес опыта",
         min_value=0,
         max_value=100,
         value=int(DEFAULT_WEIGHT_VALUES["experience"]),
     )
     soft_skills_weight = st.sidebar.slider(
-        "Soft skills weight",
+        "Вес soft skills",
         min_value=0,
         max_value=100,
         value=int(DEFAULT_WEIGHT_VALUES["soft_skills"]),
@@ -244,18 +244,18 @@ def main() -> None:
     st.sidebar.write(f"MAX_RESUME_CHARS: `{settings.max_resume_chars}`")
     st.sidebar.caption(WORKFLOW_TEXT)
 
-    st.markdown("### Vacancy")
-    vacancy_text = st.text_area("Vacancy text", height=220)
+    st.markdown("### Вакансия")
+    vacancy_text = st.text_area("Текст вакансии", height=220)
 
-    st.markdown("### Candidate")
-    candidate_name = st.text_input("Candidate name")
-    uploaded_resume = st.file_uploader("Upload PDF resume", type=["pdf"])
-    manual_resume_text = st.text_area("Manual resume text fallback", height=220)
+    st.markdown("### Кандидат")
+    candidate_name = st.text_input("Имя кандидата")
+    uploaded_resume = st.file_uploader("Загрузить PDF-резюме", type=["pdf"])
+    manual_resume_text = st.text_area("Текст резюме вручную", height=220)
 
     if "latest_result" not in st.session_state:
         st.session_state["latest_result"] = None
 
-    if st.button("Analyze candidate", type="primary"):
+    if st.button("Анализировать кандидата", type="primary"):
         logger.debug("Analyze button clicked")
         st.session_state["latest_result"] = run_analysis(
             candidate_name=candidate_name,

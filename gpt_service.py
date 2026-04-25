@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 from typing import Any
 
+import openai
 from openai import OpenAI
 
 from config import Settings, get_logger
@@ -30,6 +31,20 @@ def create_openai_client(settings: Settings) -> OpenAI:
     ensure_openai_configured(settings)
     logger.info("Creating OpenAI client")
     return OpenAI(api_key=settings.openai_api_key)
+
+
+def build_responses_request(system_prompt: str, user_prompt: str) -> dict[str, str]:
+    logger.debug(
+        "[FIX] Building documented OpenAI Responses API payload",
+        extra={
+            "system_prompt_length": len(system_prompt or ""),
+            "user_prompt_length": len(user_prompt or ""),
+        },
+    )
+    return {
+        "instructions": system_prompt,
+        "input": user_prompt,
+    }
 
 
 def extract_response_text(response: Any) -> str:
@@ -97,14 +112,20 @@ def analyze_candidate(
     client = create_openai_client(settings)
     system_prompt = build_system_prompt()
     user_prompt = build_user_prompt(vacancy_text, resume_text, candidate_name)
+    openai_request = build_responses_request(system_prompt, user_prompt)
 
     try:
+        logger.info(
+            "[FIX] Sending OpenAI request with documented Responses API fields",
+            extra={
+                "candidate_name": candidate_name,
+                "model": settings.openai_model,
+            },
+        )
         response = client.responses.create(
             model=settings.openai_model,
-            input=[
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": user_prompt},
-            ],
+            instructions=openai_request["instructions"],
+            input=openai_request["input"],
         )
         raw_content = extract_response_text(response)
         parsed_payload = parse_llm_json(raw_content)
@@ -118,9 +139,37 @@ def analyze_candidate(
             },
         )
         return analysis_result
+    except openai.APIStatusError as error:
+        logger.error(
+            "[FIX] OpenAI API returned a non-success status",
+            extra={
+                "status_code": error.status_code,
+                "request_id": error.request_id,
+                "response_body": error.response.text,
+            },
+        )
+        fallback_result = build_analysis_result(
+            {
+                "strengths": [],
+                "weaknesses": ["LLM analysis failed"],
+                "missing_skills": [],
+                "summary": "LLM analysis could not be completed. Review the resume manually.",
+                "decision": "hold",
+                "confidence": "low",
+                "risks": [error.response.text],
+                "interview_questions": [
+                    "Can you walk through the most relevant achievements from your resume?"
+                ],
+                "llm_score": 0,
+                "score": 0,
+                "final_score": 0,
+            },
+            candidate_name=candidate_name,
+        )
+        return fallback_result
     except Exception as error:
         logger.error(
-            "OpenAI candidate analysis failed, returning fallback analysis",
+            "[FIX] OpenAI candidate analysis failed, returning fallback analysis",
             extra={
                 "error_type": type(error).__name__,
                 "error_message": str(error),

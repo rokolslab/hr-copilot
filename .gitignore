@@ -4,3 +4,13 @@ __pycache__/
 .venv/
 *.pyc
 data/history.json
+
+# AI/dev tooling artifacts
+.opencode/
+.ai-factory/
+.ai-factory.json
+AGENTS.md
+MVP_PLAN.md
+submission_description.md
+tailored_resume.txt
+tailored_resume.pdf
