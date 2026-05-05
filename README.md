@@ -23,6 +23,33 @@ This project evaluates one candidate against one vacancy through a structured wo
 - `heuristic_score`, `llm_score`, and `final_score` are stored separately.
 - The final recommendation is explainable through the fit matrix and deterministic rules.
 
+## What the hiring team gets
+
+- a fast first-pass review without reducing the candidate to a keyword match;
+- separate `heuristic_score`, `llm_score`, and `final_score` instead of one opaque number;
+- interview questions, risks, and missing evidence that can be discussed with the candidate;
+- local history and candidate comparison for repeated screening sessions.
+
+## Proof: sample analysis flow
+
+```text
+vacancy text + candidate name + PDF or manual resume text
+  -> resume preparation and truncation
+  -> vacancy scorecard + evidence extraction via OpenAI JSON analysis
+  -> deterministic local scoring
+  -> heuristic_score + llm_score -> final_score
+  -> decision + confidence + interview questions
+  -> JSON download + local history record
+```
+
+## Proof: what is actually implemented
+
+- Streamlit renders separate metrics for `final_score`, `heuristic_score`, and `llm_score`.
+- The app stores history records and shows candidate comparison when there are at least two saved analyses.
+- JSON download is built directly from the final result model.
+- The app must not fail before analysis if `OPENAI_API_KEY` is missing; this behavior is documented and guarded in runtime flow.
+- The repository includes pytest coverage for app import smoke, GPT request building, parsing, scoring, models, and storage.
+
 ## Features
 
 - Streamlit UI
